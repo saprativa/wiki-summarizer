@@ -1,4 +1,4 @@
-# wiki-summarizer
+# wikipedia-summarizer
 a terminal based wikipedia article summarizer written in python.
 
 #contributors
