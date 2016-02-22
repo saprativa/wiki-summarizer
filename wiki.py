@@ -31,6 +31,11 @@ print soup.h1.string
 #printing the first paragraph of the article
 #print soup.p.get_text()
 
+#Function to display items of a list
+def display_list(a_list):
+	for element in a_list:
+		print element
+
 #function for printing the infobox table
 def print_infobox_table(table):
 	rows = table.find_all('tr')
@@ -58,11 +63,10 @@ def print_infobox_table(table):
 
 
 #Function to extract and display the first paragraph.
-def print_first_para(soup):
+def extract_first_para(soup):
 	body = soup.body	#Portion of interest : 'body'
 	div1 = body.find(id='mw-content-text')
-	para = []	#A list to store each paragraph before contents table
-	stop_f = False	#Flag for stopping the traversing process
+	paras = []	#A list to store each paragraph before the table of contents
 	#Search and extract begins
 	for c in div1.contents:
 		if c.name is None:	#Directly skip
@@ -72,20 +76,37 @@ def print_first_para(soup):
 			#print 'check 2'
 			if c.has_attr('id')==True:
 				#print 'check 3'
-				if c['id']=="toc":
+				if c['id']=="toc":	#Stopping point
 					#print 'check 4'
 					break
-		elif c.name == 'p':
+		elif c.name == 'p':	#Paragraph zone
 			#print 'check 5'
-			para.append(c.text)
+			for sups in c.contents:	#Inside the current paragraph
+				if sups.name in ('sup','span','img'):	#If 'sup' tag found
+					sups.replaceWith('')	#Remove it
+	
+			paras.append(c.text)
+			
 		else:
-			#print 'check 6'
+			#print 'check 7'
 			continue	
 	del c
+
 	#print para[1]
-	for c in para:
-		print c,'*********************************************'
+	#for c in para:
+	#	print c,'*********************************************'
+	
+	return paras	#List that contains all the extracted paragraphs
+
+#def rm_citations(para_list):
+#	for p in para_list:
+
 
 #calling print_infobox_table
 #print_infobox_table(soup.find('table', class_='infobox'))
-print_first_para(soup)
+
+#Extract and print first para
+para_list = extract_first_para(soup)
+display_list(para_list)
+
+#rm_citations(para_list)
