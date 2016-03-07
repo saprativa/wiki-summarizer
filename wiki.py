@@ -97,7 +97,7 @@ def print_top_paras(body):
 			continue	
 	del tag
 
-#Remove citations from the provided tag
+#function for removing citations
 def remove_citations(_tag_):
 	for sups in _tag_.contents:	#Inside the current paragraph
 		if sups.name in ('sup','img'):	#If 'sup' tag found
@@ -155,7 +155,7 @@ while True:
 	#calling the function for printing the infobox table
 	print_infobox_table(soup.find('table', class_='infobox'))
 
-	print '----------------------------------------------------------'
+	print '-' * 80
 
 	#calling the function for printing the top paragraphs
 	print_top_paras(soup.body)
