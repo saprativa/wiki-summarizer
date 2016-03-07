@@ -1,20 +1,6 @@
-			############################## Wikipedia summarizer ###########################
-			#                                                                             #
-			###############################################################################
-
 import sys
 import requests 
 from bs4 import BeautifulSoup
-
-#Function to display items of a list
-def display_list(a_list):
-	#para_count =5 
-	for element in a_list:
-		print element
-		#para_count -= 1
-		#if para_count >= 0:
-		#	break
-
 
 #Display the list of option for a disambiguation page
 def get_specific_link(soup):
@@ -56,17 +42,12 @@ def get_specific_link(soup):
 
 	return str(options[opt-1].a['href'])	#Returns the link of the target article
 
-#Check for disambiguation page
+#function for identifying disambiguation page
 def disambiguation(soup):
-	#print type(soup)
-	catlinks = soup.find('div',id='catlinks')	#<div id='mw-normal-catlinks'....> will contain the 'Category: Disambiguation pages'
-	#print type(catlinks)
-	for cats in catlinks.contents:
-		if cats.find('a',title='Category:Disambiguation pages') == None:	#No diambiguation page
-			continue
-		else:	#Disambiguation page
-			return True
-	return False
+	if soup.find('table', id = 'disambigbox') is not None:
+		return True
+	else:
+		return False
 
 #function for printing the infobox table
 def print_infobox_table(table):
@@ -99,93 +80,59 @@ def print_infobox_table(table):
 
 	return 0
 
-#Function to extract the first paragraph.
-def extract_first_para(soup):
-	body = soup.body	#Portion of interest : 'body'
-	div1 = body.find('div',id='mw-content-text')
-	paras = []	#A list to store each paragraph before the table of contents
-	#Search and extract begins
-	for c in div1.contents:
-		if c.name is None:	#Directly skip
-			#print 'check 1'
+#function for printing the top paragraphs
+def print_top_paras(body):
+	div = body.find('div',id='mw-content-text')
+	for tag in div.contents:
+		if tag.name is None:
 			continue
-		if c.name == 'div':	# <div id='toc'>
-			#print 'check 2'
-			if c.has_attr('id')==True:
-				#print 'check 3'
-				if c['id']=="toc":	#Reaching here means we have extracted all paras above the contents table
-					#print 'check 4'
+		elif tag.name == 'div':
+			if tag.has_attr('id') == True:
+				if tag['id'] == "toc":
 					break
-		elif c.name == 'p':	#Paragraph zone
-			#print 'check 5'
-			remove_citations(c)
-			paras.append(c.text)			
+		elif tag.name == 'p':
+			remove_citations(tag)
+			print tag.text			
 		else:
-			#print 'check 7'
 			continue	
-	del c
+	del tag
 
-	#print para[1]
-	#for c in para:
-	#	print c,'*********************************************'
-	
-	return paras	#List that contains all the extracted paragraphs
 #Remove citations from the provided tag
 def remove_citations(_tag_):
 	for sups in _tag_.contents:	#Inside the current paragraph
 		if sups.name in ('sup','img'):	#If 'sup' tag found
 			sups.replaceWith('')	#Remove it
-	
 
-
-				############################### Program begins here ##################################
-#Display greetings!
-for i in range(0,25):
-	sys.stdout.write('#')
-sys.stdout.write(' WELCOME TO WIKI-SUMMERIZER ')
-for i in range(0,25):
-	sys.stdout.write('#')
-print
-sys.stdout.write('#')
-for i in range(0,50+len(' WELCOME TO WIKI-SUMMERIZER ')-2):
-	sys.stdout.write(' ')
-print '#'
-for i in range(0,50+len(' WELCOME TO WIKI-SUMMERIZER ')):
-	sys.stdout.write('#')
-
-#Start here
-print
+#program starts here
 while True:
-	print
-	#Asking the user for search keyword
+	#asking the user for the search keyword
 	try:
 		keyword = raw_input('Search Wikipedia for: ')
-	except EOFError:	#Non-string or ENTER was input
+	#if non-string or enter is input
+	except EOFError:	
 		print '---- You did not enter anything ----'
 		print '---- Please retry ----'
 		continue
-	except KeyboardInterrupt:	#CTRL+C was pressed
+	#if ctrl+c is pressed
+	except KeyboardInterrupt:
 		print '---- BYE ----'
 		exit()
 
-	#Prefix is the common url part. '/Special:Search/' is used because this links
-	#redirects to the correct page(for any article) even if the case is wrong.
+	#pefix is the common url part, '/Special:Search/' is used to make keyword case-insensitive
 	prefix = 'https://en.wikipedia.org/wiki/Special:Search' 
 
-	#Making the complete url prefix + keyword
+	#making the complete url: prefix + keyword
 	url = prefix + '/' + keyword.strip().replace(' ', '_')
 
-	#Printing the url
+	#printing the url
 	print 'Generated URL: ' + url
 
 	print 'Retrieving article...'
-	#print 'Analyzing article...'
 
-	#Find the appropriate article. There may disambiguation pages. This means some terminologies may refer to more than one meaning
 	while True:
-		#Saving the contents of the http response into page
+		#saving the contents of the http response into page
 		page = requests.get(url).content
-		#Making the soup with html.parser
+		#making the soup with html.parser
 		soup = BeautifulSoup(page, 'html5lib')
 
 		#print '#Check for disambiguation page'
@@ -202,20 +149,13 @@ while True:
 		else:	#Done
 			break
 	
-	#Printing the title of the wikipedia article
-	print '\t***',soup.h1.string,'***'
+	#printing the title of the wikipedia article
+	print '***',soup.h1.string,'***'
 
-	#Printing the first paragraph of the article
-	#print soup.p.get_text()
-
-
-	#Calling print_infobox_table
+	#calling the function for printing the infobox table
 	print_infobox_table(soup.find('table', class_='infobox'))
 
 	print '----------------------------------------------------------'
-	#Extract and print first para
-	para_list = extract_first_para(soup)
-	display_list(para_list)
-	for i in range(0,50):
-		sys.stdout.write('#')
 
+	#calling the function for printing the top paragraphs
+	print_top_paras(soup.body)
