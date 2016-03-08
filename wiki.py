@@ -2,48 +2,40 @@ import sys
 import requests 
 from bs4 import BeautifulSoup
 
-#Display the list of option for a disambiguation page
-def get_specific_link(soup):
-	mw = soup.find('div',id='mw-content-text')	#First get the target division
-	remove_citations(mw)
-	
-	l = tuple(mw.contents)	#Make a list of mw's children and then convert it to tuple so that we can index each items(This step may be redundant)
-	#Remove items with value u'\n'(i.e. NoneType) from the tuple using filtering technique...coz tuples are immutable
-	l = [x for x in l if x != u'\n']	# l is I guess converted to a <type 'list'> now, yielded by the effect of tuple filtering. Not a problem
-	
-	#Find <ul> tag
-	for ul in l:
-		if ul == u'ul':
-			soup = BeautifulSoup(ul,'html.parser')
-			break
-		#May require else case in the future.(Unexpected)
+#function for getting the disambiguated url
+def get_disambiguation_suffix(soup):
+	div = soup.find('div', id = 'mw-content-text')
 
-	options = tuple(soup.ul.contents)	#Generate options<li> to be displayed
-	options = [x for x in options if x != u'\n']
+	urls = []
 
-	#Display options as a menu
-	while True:
-		print
-		print "Select any of the options below that you are interested in:"
-		for i in range(0,len(options)):
-			print str(i+1) + ". " + str(options[i].text)
-		#Check for blank input
-		try:
-			opt = int(raw_input("> "))
-			if opt not in range(1,len(options)+1):	#Wrong option
-				print '------- Wrong option! Please try again ------'
-				print '\tThere are only',len(options),'options available. Please select any one of them.'
-				continue
-			break
-		except ValueError:
-			print "------- ?? YOU MAY HAVE PRESSED AN INVALID KEY ?? -------"
-			print "\tSELECT ANY ONE OF THE OPTION WITH THEIR SLNO (or)"
-			print "\tPRESS CTRL+C TO QUIT"
+	i = 0
 
-	return str(options[opt-1].a['href'])	#Returns the link of the target article
+	edits = div.select(".mw-editsection")
+	for edit in edits:
+        	edit.decompose()
+
+	for tag in div.children:
+        	if tag.name == 'h2':
+                	if tag.span['id'] == 'See_also':
+                        	break
+                	else:
+                        	print '\n', tag.text
+        	elif tag.name == 'h3':
+                	print '\n', tag.text
+        	elif tag.name == 'p':
+                	print '\n', tag.text
+        	elif tag.name == 'ul':
+                	for li in tag.find_all('li'):
+                        	i = i+1
+                        	print i,
+                        	print li.text
+                        	urls.append(li.a['href'])
+	choice = int(raw_input('Enter your choice: '))
+	return urls[choice-1]
+	del urls
 
 #function for identifying disambiguation page
-def disambiguation(soup):
+def check_disambiguation(soup):
 	if soup.find('table', id = 'disambigbox') is not None:
 		return True
 	else:
@@ -119,35 +111,29 @@ while True:
 		exit()
 
 	#pefix is the common url part, '/Special:Search/' is used to make keyword case-insensitive
-	prefix = 'https://en.wikipedia.org/wiki/Special:Search' 
+	prefix = 'https://en.wikipedia.org/wiki/Special:Search/' 
 
 	#making the complete url: prefix + keyword
-	url = prefix + '/' + keyword.strip().replace(' ', '_')
+	url = prefix + keyword.strip().replace(' ', '_')
 
 	#printing the url
 	print 'Generated URL: ' + url
-
 	print 'Retrieving article...'
 
-	while True:
-		#saving the contents of the http response into page
-		page = requests.get(url).content
-		#making the soup with html.parser
-		soup = BeautifulSoup(page, 'html5lib')
+	#saving the contents of the http response into page
+	page = requests.get(url).content
+	#making the soup
+	soup = BeautifulSoup(page)
 
-		#print '#Check for disambiguation page'
-		if disambiguation(soup) == True:
-			print "#Disambiguation found"
-			#Get that new specific article's link and regenerate soup object with new content
-			prefix = 'https://en.wikipedia.org' 
-			specific_link = get_specific_link(soup).replace("#","/")
-			if specific_link.find("/wiki") != -1:
-				url = prefix + get_specific_link(soup).replace("#","/")
-			else:
-				url = prefix + "/wiki" + get_specific_link(soup).replace("#","/")
-			print "---------" + url
-		else:	#Done
-			break
+	if check_disambiguation(soup) == True:
+		print "Redirecting to the disambiguaion page."
+		prefix = 'https://en.wikipedia.org'
+		suffix = get_disambiguation_suffix(soup)
+		url = prefix + suffix
+		print 'Generated URL: ' + url
+	        print 'Retrieving article...'
+		page = requests.get(url).content
+        	soup = BeautifulSoup(page)
 	
 	#printing the title of the wikipedia article
 	print '***',soup.h1.string,'***'
