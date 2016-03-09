@@ -1,7 +1,12 @@
-# wikipedia-summarizer
-a terminal based wikipedia article summarizer written in python.
+#WIKIPEDIA-SUMMARIZER
+A terminal based wikipedia article summarizer written in python.
 
-#contributors
-irak rigia
+#Contributors
+Irak Rigia
 
-saprativa bhattacharjee
+Saprativa Bhattacharjee
+
+#Usage
+Download and extract the zip file. cd to the directory wikipedia-summarizer and type:
+
+$ python wiki.py
