@@ -1,6 +1,12 @@
-import sys
 import requests 
 from bs4 import BeautifulSoup
+
+#function for checking whether the page exists or not
+def page_does_not_exist(soup):
+	if soup.find('p', class_='mw-search-nonefound') is not None:
+		return True
+	else:
+		return False
 
 #function for getting the disambiguated url
 def get_disambiguation_suffix(soup):
@@ -26,16 +32,25 @@ def get_disambiguation_suffix(soup):
                 	print '\n', tag.text
         	elif tag.name == 'ul':
                 	for li in tag.find_all('li'):
+				if li.find('ul') is not None:
+					li.ul.clear()
                         	i = i+1
-                        	print i,
-                        	print li.text
+                        	print str(i) + '.',
+                        	print li.text.strip()
                         	urls.append(li.a['href'])
-	choice = int(raw_input('Enter your choice: '))
+
+	while True:
+		choice = int(raw_input('\nEnter your choice (1-' + str(len(urls)) + '):'))
+		if choice >= 1 and choice <= len(urls):
+			break
+		else:
+			print 'Wrong choice. Please enter a valid choice.'
+			continue
+
 	return urls[choice-1]
-	del urls
 
 #function for identifying disambiguation page
-def check_disambiguation(soup):
+def disambiguation(soup):
 	if soup.find('table', id = 'disambigbox') is not None:
 		return True
 	else:
@@ -44,7 +59,8 @@ def check_disambiguation(soup):
 #function for printing the infobox table
 def print_infobox_table(table):
 	if table is None:
-		return -1
+		return
+	remove_citations(table)
 	rows = table.find_all('tr')
 	for row in rows:
                 if row.find('table') is None:
@@ -68,47 +84,39 @@ def print_infobox_table(table):
                                 if i == (len(tds) - 1):
                                         print td.text.strip().replace('\n', ', ') + '.'
                                 else:
-                                        print td.text.strip().replace('\n', ', ') + ',',	
-
-	return 0
+                                        print td.text.strip().replace('\n', ', ') + ',',
+	print '-' * 80
 
 #function for printing the top paragraphs
-def print_top_paras(body):
+def print_top_paragraphs(body):
 	div = body.find('div',id='mw-content-text')
 	for tag in div.contents:
-		if tag.name is None:
-			continue
-		elif tag.name == 'div':
+		if tag.name == 'div':
 			if tag.has_attr('id') == True:
 				if tag['id'] == "toc":
 					break
 		elif tag.name == 'p':
 			remove_citations(tag)
 			print tag.text			
-		else:
-			continue	
-	del tag
 
 #function for removing citations
-def remove_citations(_tag_):
-	for sups in _tag_.contents:	#Inside the current paragraph
-		if sups.name in ('sup','img'):	#If 'sup' tag found
-			sups.replaceWith('')	#Remove it
-
+def remove_citations(tag):
+	citations = tag.select("sup.reference")
+	for citation in citations:
+		citation.decompose()
+	
 #program starts here
 while True:
 	#asking the user for the search keyword
 	try:
 		keyword = raw_input('Search Wikipedia for: ')
-	#if non-string or enter is input
-	except EOFError:	
-		print '---- You did not enter anything ----'
-		print '---- Please retry ----'
-		continue
-	#if ctrl+c is pressed
-	except KeyboardInterrupt:
+	#if ctrl+c or ctrl+d is pressed
+	except EOFError:
 		print '---- BYE ----'
 		exit()
+	except KeyboardInterrupt:
+                print '---- BYE ----'
+                exit()
 
 	#pefix is the common url part, '/Special:Search/' is used to make keyword case-insensitive
 	prefix = 'https://en.wikipedia.org/wiki/Special:Search/' 
@@ -125,7 +133,12 @@ while True:
 	#making the soup
 	soup = BeautifulSoup(page)
 
-	if check_disambiguation(soup) == True:
+	if(page_does_not_exist(soup)):
+		print 'Whoa! You searched for something that even Wikipedia does not know about.'
+		print 'Please try again.'
+		continue
+
+	if(disambiguation(soup)):
 		print "Redirecting to the disambiguaion page."
 		prefix = 'https://en.wikipedia.org'
 		suffix = get_disambiguation_suffix(soup)
@@ -141,7 +154,5 @@ while True:
 	#calling the function for printing the infobox table
 	print_infobox_table(soup.find('table', class_='infobox'))
 
-	print '-' * 80
-
 	#calling the function for printing the top paragraphs
-	print_top_paras(soup.body)
+	print_top_paragraphs(soup.body)
