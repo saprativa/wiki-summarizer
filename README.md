@@ -1,5 +1,5 @@
 #WIKIPEDIA-SUMMARIZER
-A terminal based Wikipedia article summarizer written in Python. It extracts and displays the infobox table (found on most of the wikipedia articles) and the first few paragraphs which occur before the table of contents. On encountering a disambiguation page, a list of available article options is presented out of which any one can be selected. 
+A terminal based Wikipedia article summarizer written in Python. It extracts and displays the infobox table (found on most of the Wikipedia articles) and the first few paragraphs which occur before the table of contents. On encountering a disambiguation page, a list of available article options is presented out of which any one can be selected. 
 
 #Contributors
 1. Irak Rigia
